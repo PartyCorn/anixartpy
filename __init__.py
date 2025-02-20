@@ -1,11 +1,11 @@
-from . import anix_images
+from . import anix_images, models, errors
+from .utils import ArticleBuilder
+from typing import Union
 import os
 try:
     import requests
 except ImportError:
     os.system("pip install requests")
-import time
-import uuid
 
 class AnixartAPI:
     BASE_URL = "https://api.anixart.tv"
@@ -19,70 +19,41 @@ class AnixartAPI:
             "API-Version": "v2"
         })
         self.session.params = {"token": token}
-    
-    def create_article(self, channel_id: int, article_data: dict):
-        url = f"{self.BASE_URL}/article/create/{channel_id}"
-        response = self.session.post(url, json=article_data)
-        return response.json()
-    
-    def delete_article(self, article_id: int):
-        url = f"{self.BASE_URL}/article/delete/{article_id}"
-        response = self.session.post(url)
-        return response.json()
-    
-    def edit_article(self, article_id: int, article_data: dict):
-        url = f"{self.BASE_URL}/article/edit/{article_id}"
-        response = self.session.post(url, json=article_data)
+
+    def _get(self, endpoint):
+        url = f"{self.BASE_URL}{endpoint}"
+        response = self.session.get(url)
         return response.json()
 
-class ArticleBuilder:
-    def __init__(self, channel_id: int):
-        self.channel_id = channel_id
-        self.payload = {
-            "time": int(time.time() * 1000),
-            "blocks": [],
-            "version": "2.29.0-rc.1",
-            "block_count": 0
-        }
+    def _post(self, endpoint, data=None):
+        url = f"{self.BASE_URL}{endpoint}"
+        response = self.session.post(url, json=data)
+        return response.json()
     
-    def _add_block(self, name, block_type, data):
-        block = {"id": str(uuid.uuid4())[:12], "name": name, "type": block_type, "data": data}
-        self.payload["blocks"].append(block)
-        self.payload["block_count"] += 1
-        return self
+    def get_channel(self, channel_id: int) -> models.Channel:
+        data = self._get(f"/channel/{channel_id}")
+        if data["code"] == 0:
+            return models.Channel(data["channel"], self)
+        return None
     
-    def add_header(self, text: str, level: int = 3):
-        return self._add_block("header", "header", {"text": text, "level": level, "text_length": len(text)})
+    def create_article(self, channel_id: int, article_data: Union[ArticleBuilder, dict]):
+        if isinstance(article_data, ArticleBuilder):
+            article_data = article_data.build()
+        response = self._post(f"/article/create/{channel_id}", article_data)
+        if response["code"] == 0:
+            return models.Article(response["article"], self)
+        else:
+            raise errors.ArticleCreateEditError(response["code"])
     
-    def add_paragraph(self, text: str):
-        return self._add_block("paragraph", "paragraph", {"text": text, "text_length": len(text)})
+    def delete_article(self, article_id: int):
+        response = self._post(f"/article/delete/{article_id}")
+        return response
     
-    def add_quote(self, text: str, caption: str | None = None, alignment: str = "left"):
-        return self._add_block("quote", "quote", {"text": text, "caption": caption, "alignment": alignment, "text_length": len(text), "caption_length": len(caption or "")})
-    
-    def add_delimiter(self):
-        return self._add_block("delimiter", "delimiter", {})
-    
-    def add_list(self, items: list, ordered: bool = False):
-        return self._add_block("list", "list", {"items": items, "style": "ordered" if ordered else "unordered", "item_count": len(items)})
-    
-    def add_media(self, files: str | list[str]):
-        # TODO: take bytes and ioreadder from link
-        media = []
-        if type(files) != list:
-            files = [files]
-        for file in files:
-            image = anix_images.upload_image(self.channel_id, file)
-            if image.get('success') != 1:
-                print('IMAGE ERROR')
-            media.append(image["file"])
-        return self._add_block("media", "media", {"items": media, "item_count": len(media)})
-    
-    def add_embed(self, link: str):
-        embed = anix_images.upload_embed(self.channel_id, link)
-        if embed.get('success') != 1:
-            print('EMBED ERROR')
-        return self._add_block("embed", "embed", {k: v for k, v in embed.items() if k != "success"})
-    
-    def build(self):
-        return {"payload": self.payload}
+    def edit_article(self, article_id: int, article_data: Union[ArticleBuilder, dict]):
+        if isinstance(article_data, ArticleBuilder):
+            article_data = article_data.build()
+        response = self._post(f"/article/edit/{article_id}", article_data)
+        if response["code"] == 0:
+            return models.Article(response["article"], self)
+        else:
+            raise errors.ArticleCreateEditError(response["code"])
