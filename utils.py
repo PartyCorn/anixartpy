@@ -1,6 +1,27 @@
 import time
 import uuid
-from . import anix_images
+from . import anix_images, consts
+
+class Style:
+    @staticmethod
+    def bold(text: str) -> str:
+        return f"<b>{text}</b>"
+
+    @staticmethod
+    def underline(text: str) -> str:
+        return f"<u>{text}</u>"
+
+    @staticmethod
+    def italic(text: str) -> str:
+        return f"<i>{text}</i>"
+
+    @staticmethod
+    def strike(text: str) -> str:
+        return f"<s>{text}</s>"
+
+    @staticmethod
+    def link(text: str, url: str) -> str:
+        return f'<a href="{url}">{text}</a>'
 
 class ArticleBuilder:
     def __init__(self, channel_id: int):
@@ -8,7 +29,7 @@ class ArticleBuilder:
         self.payload = {
             "time": int(time.time() * 1000),
             "blocks": [],
-            "version": "2.29.0-rc.1",
+            "version": consts.EDITOR_VERSION,
             "block_count": 0
         }
     
@@ -31,10 +52,9 @@ class ArticleBuilder:
         return self._add_block("delimiter", "delimiter", {})
     
     def add_list(self, items: list, ordered: bool = False):
-        return self._add_block("list", "list", {"items": items, "style": "ordered" if ordered else "unordered", "item_count": len(items)})
+        return self._add_block("list", "list", {"items": items, "style": ("un", "")[ordered] + "ordered", "item_count": len(items)})
     
     def add_media(self, files: str | list[str]):
-        # TODO: take bytes and ioreadder from link
         media = []
         if type(files) != list:
             files = [files]

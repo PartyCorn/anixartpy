@@ -2,13 +2,21 @@ class AnixartError(Exception):
     """Базовый класс для ошибок Anixart API."""
     ERROR_MESSAGES = {}
 
-    def __init__(self, error_code: int):
+    def __init__(self, error_code: int, message: str = ''):
         self.error_code = error_code
-        self.message = self.ERROR_MESSAGES.get(error_code, "Неизвестная ошибка.")
+        self.message = message or self.ERROR_MESSAGES.get(error_code, "Неизвестная ошибка.")
         super().__init__(self.message)
 
     def __str__(self):
         return f"[Ошибка {self.error_code}] {self.message}"
+
+class DefaultError(AnixartError):
+    ERROR_MESSAGES = {
+        1: "Неизвестная ошибка.",
+        401: "Не авторизован.",
+        402: "Заблокирован.",
+        403: "Заблокирован навсегда.",
+    }
 
 class ChannelCreateEditError(AnixartError):
     ERROR_MESSAGES = {
@@ -33,4 +41,26 @@ class ArticleCreateEditError(AnixartError):
         10: "Канал заблокирован.",
         11: "Статья не найдена.",
         12: "Статья удалена.",
+    }
+
+class ArticleGetError(AnixartError):
+    ERROR_MESSAGES = {
+        2: "Статья не найдена.",
+        3: "Статья удалена.",
+    }
+
+class ChannelGetError(AnixartError):
+    ERROR_MESSAGES = {
+        2: "Канал не найден."
+    }
+
+class ChannelSubscribeError(AnixartError):
+    ERROR_MESSAGES = {
+        2: "Подписка уже существует.",
+        3: "Достигнут лимит подписок.",
+    }
+
+class ChannelUnsubscribeError(AnixartError):
+    ERROR_MESSAGES = {
+        2: "Подписки не существует.",
     }
