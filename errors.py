@@ -64,3 +64,9 @@ class ChannelUnsubscribeError(AnixartError):
     ERROR_MESSAGES = {
         2: "Подписки не существует.",
     }
+
+class ChannelUploadCoverAvatarError(AnixartError):
+    ERROR_MESSAGES = {
+        2: "Канал не найден.",
+        3: "Вы не владелец канала."
+    }

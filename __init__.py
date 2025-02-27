@@ -7,8 +7,8 @@ try:
 except ImportError:
     os.system("pip install requests")
 
-author = "PartyCorn"
-version = "0.2.0"
+__author__ = "PartyCorn"
+__version__ = "0.3.0"
 
 class AnixartAPI:
     BASE_URL = "https://api.anixart.tv"
@@ -18,7 +18,7 @@ class AnixartAPI:
         self.token = token
         anix_images.TOKEN = token
         self.session.headers.update({
-            'User-Agent': 'AnixartApp/9.0 BETA 1-24121614 (Android 12; SDK 31; arm64-v8a; Xiaomi M2102J20SG; ru)',
+            'User-Agent': f'AnixartPy/{__version__} by PartyCorn-private (Android 12; SDK 31; arm64-v8a; iPhone 20 Pro Max; ru)',
             'API-Version': 'v2',
             'sign': 'U1R9MFRYVUdOQWcxUFp4OENja1JRb8xjZFdvQVBjWDdYR07BUkgzNllxRWJPOFB3ZkhvdU9JYVJSR9g2UklRcVk1SW3QV8xjMzc2fWYzMmdmZDc2NTloN0g0OGUwN0ZlOGc8N0hjN0U9Y0M3Z1NxLndhbWp2d1NqeC3lcm9iZXZ2aEdsOVAzTnJX2zqZpyRX',
         })

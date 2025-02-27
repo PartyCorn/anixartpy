@@ -1,6 +1,6 @@
 import time
 import uuid
-from . import anix_images, consts
+from . import anix_images
 
 class Style:
     @staticmethod
@@ -24,12 +24,14 @@ class Style:
         return f'<a href="{url}">{text}</a>'
 
 class ArticleBuilder:
+    EDITOR_VERSION = "2.26.5"
+
     def __init__(self, channel_id: int):
         self.channel_id = channel_id
         self.payload = {
             "time": int(time.time() * 1000),
             "blocks": [],
-            "version": consts.EDITOR_VERSION,
+            "version": self.EDITOR_VERSION,
             "block_count": 0
         }
     
