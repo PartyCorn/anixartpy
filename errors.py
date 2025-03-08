@@ -70,3 +70,18 @@ class ChannelUploadCoverAvatarError(AnixartError):
         2: "Канал не найден.",
         3: "Вы не владелец канала."
     }
+
+class ChannelBlockError(AnixartError):
+    ERROR_MESSAGES = {
+        2: "Канал не найден.",
+        3: "Вы не владелец канала.",
+        4: "Блокировка не обнаружена."
+    }
+
+class ChannelPermissionManageError(AnixartError):
+    ERROR_MESSAGES = {
+        2: "Недействительное значение привилегии.",
+        3: "Целевой профиль не найден.",
+        4: "Канал не найден.",
+        5: "Вы не владелец канала."
+    }

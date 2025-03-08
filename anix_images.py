@@ -98,7 +98,7 @@ def upload_cover(cid, file_input):
     url = f'https://api.anixart.tv/channel/cover/upload/{cid}'
     return send_file_request(url, file_input, BASE_HEADERS.copy(), 'image')
 
-def upload_avatar(cid, file_input, is_blog: bool = True):
+def upload_avatar(cid, file_input, is_blog: bool = False):
     """Загружает аватарку пользователя."""
     url = f'https://api.anixart.tv/' + (f'channel/avatar/upload/{cid}' if not is_blog else f'profile/preference/avatar/edit')
     return send_file_request(url, file_input, BASE_HEADERS.copy(), 'image')

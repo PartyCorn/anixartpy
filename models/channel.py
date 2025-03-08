@@ -1,6 +1,6 @@
 from datetime import datetime
-from typing import Optional, List
-from .. import enums, errors, anix_images
+from typing import Optional, List, Union
+from .. import enums, errors, anix_images, utils
 from .base import BaseModel
 from .profile import Badge
 
@@ -22,16 +22,48 @@ class ChannelMember(BaseModel):
         self.__api = api
         self.badge = Badge(id=None, name=data["badge_name"], type=data["badge_type"], url=data["badge_url"])
         self.permission = enums.ChannelMemberPermission(data["permission"])
-        self.block_expire_date = datetime.fromtimestamp(data["block_expire_date"]) if data["block_expire_date"] else None
+        self.permission_creation_date = datetime.fromtimestamp(data["permission_creation_date"]) if data["permission_creation_date"] else None
+        try:
+            self.block_expire_date = datetime.fromtimestamp(data["block_expire_date"]) if data["block_expire_date"] else None
+        except Exception:
+            self.block_expire_date = data["block_expire_date"]
     
-    def block(self, reason: str) -> dict:
-        return
+    def block(self, reason: str, expire_date: Union[datetime, int] = None, show_reason: bool = True) -> "ChannelMember":
+        response = self.__api._post(f"/channel/{self.channel_id}/block/manage", {"target_profile_id": self.id, "is_blocked": True, "reason": reason, "expire_date": expire_date, "is_reason_showing_enabled": show_reason, "is_perm_blocked": expire_date == None})
+        if response["code"] == 0:
+            self.is_blocked = True
+            self.block_reason = reason
+            self.block_expire_date = expire_date
+        else:
+            raise errors.ChannelBlockError(response["code"])
+        return self
 
-    def unblock(self) -> dict:
-        return
+    def unblock(self) -> "ChannelMember":
+        response = self.__api._post(f"/channel/{self.channel_id}/block/manage", {"target_profile_id": self.id, "is_blocked": False, "is_perm_blocked": False})
+        if response["code"] == 0:
+            self.is_blocked = False
+            self.is_perm_blocked = False
+            self.block_reason = None
+            self.block_expire_date = None
+        else:
+            raise errors.ChannelBlockError(response["code"])
+        return self
     
-    def set_permission(self, permission: enums.ChannelMemberPermission) -> dict:
-        return
+    def set_permission(self, permission: Optional[Union[enums.ChannelMemberPermission, int]]) -> "ChannelMember":
+        if permission == enums.ChannelMemberPermission.MEMBER:
+            permission = None
+        response = self.__api._post(f"/channel/{self.channel_id}/permission/manage", {"target_profile_id": self.id, "permission": permission})
+        if response["code"] == 0:
+            self.permission = enums.ChannelMemberPermission(permission or 0)
+            self.permission_creation_date = datetime.now() if permission else None
+            if permission == enums.ChannelMemberPermission.ADMINISTRATOR:
+                self.is_blocked = False
+                self.is_perm_blocked = False
+                self.block_reason = None
+                self.block_expire_date = None
+        else:
+            raise errors.ChannelPermissionManageError(response["code"])
+        return self
 
 
 class Channel(BaseModel):
@@ -81,6 +113,18 @@ class Channel(BaseModel):
             raise errors.ChannelCreateEditError(response["code"])
         return self
     
+    def create_article(self, article_data: Union[utils.ArticleBuilder, dict], repost_article_id: Optional[int] = None):
+        from .article import Article
+        if isinstance(article_data, utils.ArticleBuilder):
+            article_data = article_data.build()
+        if repost_article_id is not None:
+            article_data["repost_article_id"] = repost_article_id
+        response = self._post(f"/article/create/{self.id}", article_data)
+        if response["code"] == 0:
+            return Article(response["article"], self)
+        else:
+            raise errors.ArticleCreateEditError(response["code"])
+    
     def subscribe(self) -> dict:
         response = self.__api._post(f"/channel/subscribe/{self.id}")
         if response["code"] == 0:
@@ -104,16 +148,25 @@ class Channel(BaseModel):
         else:
             raise errors.AnixartError(response["code"], "Канал не найден.")
     
-    def get_administrators(self, page: int = 0) -> List[ChannelMember]:
-        return
+    def get_administrators(self, permission: Union[enums.ChannelMemberPermission, int] = enums.ChannelMemberPermission.ADMINISTRATOR, page: int = 0) -> List[ChannelMember]:
+        response = self.__api._post(f"/channel/{self.id}/permission/all/{page}", {"permission": permission})
+        if response["code"] == 0:
+            return list([ChannelMember(member, self.__api) for member in response["content"]])
+        else:
+            raise errors.AnixartError(response["code"], "Не удалось получить список администраторов канала.")
     
     def get_blocked_members(self, page: int = 0) -> List[ChannelMember]:
-        return
+        response = self.__api._get(f"/channel/{self.id}/block/all/{page}")
+        if response["code"] == 0:
+            return list([ChannelMember(member, self.__api) for member in response["content"]])
+        else:
+            raise errors.AnixartError(response["code"], "Не удалось получить список заблокированных пользователей канала.")
     
     def set_avatar(self, file: str) -> "Channel":
-        response = anix_images.upload_avatar(self.id, file)
+        response = anix_images.upload_avatar(self.id, file, self.is_blog)
+        print(response)
         if response["code"] == 0:
-            self.avatar = response["url"]
+            self.avatar = response["url"] if not self.is_blog else response["avatar"]
         else:
             raise errors.ChannelUploadCoverAvatarError(response["code"])
         return self
@@ -124,3 +177,4 @@ class Channel(BaseModel):
             self.cover = response["url"]
         else:
             raise errors.ChannelUploadCoverAvatarError(response["code"])
+        return self

@@ -8,12 +8,18 @@ except ImportError:
     os.system("pip install requests")
 
 __author__ = "PartyCorn"
-__version__ = "0.3.0"
+__version__ = "0.3.2"
 
 class AnixartAPI:
     BASE_URL = "https://api.anixart.tv"
 
-    def __init__(self, token: str):
+    def __init__(self, token: Optional[str]):
+        """
+        Initialize the Anixart API client.
+
+        Args:
+            token (Optional[str]): Authentication token for the Anixart API. If provided, will be used for authenticated requests.
+        """
         self.session = requests.Session()
         self.token = token
         anix_images.TOKEN = token
@@ -22,7 +28,8 @@ class AnixartAPI:
             'API-Version': 'v2',
             'sign': 'U1R9MFRYVUdOQWcxUFp4OENja1JRb8xjZFdvQVBjWDdYR07BUkgzNllxRWJPOFB3ZkhvdU9JYVJSR9g2UklRcVk1SW3QV8xjMzc2fWYzMmdmZDc2NTloN0g0OGUwN0ZlOGc8N0hjN0U9Y0M3Z1NxLndhbWp2d1NqeC3lcm9iZXZ2aEdsOVAzTnJX2zqZpyRX',
         })
-        self.session.params = {"token": token}
+        if token:
+            self.session.params = {"token": token}
 
     def _get(self, endpoint) -> dict:
         url = f"{self.BASE_URL}{endpoint}"
@@ -41,20 +48,19 @@ class AnixartAPI:
         else:
             raise errors.ChannelGetError(response["code"])
     
-    def create_article(self, channel_id: int, article_data: Union[ArticleBuilder, dict], repost_article_id: Optional[int] = None) -> models.Article:
-        if isinstance(article_data, ArticleBuilder):
-            article_data = article_data.build()
-        if repost_article_id is not None:
-            article_data["repost_article_id"] = repost_article_id
-        response = self._post(f"/article/create/{channel_id}", article_data)
-        if response["code"] == 0:
-            return models.Article(response["article"], self)
-        else:
-            raise errors.ArticleCreateEditError(response["code"])
-    
     def get_article(self, article_id: int) -> models.Article:
         response = self._post(f"/article/{article_id}")
         if response["code"] == 0:
             return models.Article(response["article"], self)
         else:
             raise errors.ArticleGetError(response["code"])
+    
+    def get_latest_article_id(self) -> int:
+        response = self._get(f"/article/latest")
+        if response["code"] == 0:
+            return response["articleId"]
+        else:
+            raise errors.AnixartError(response["code"], "Не удалось получить ID последнего поста.")
+    
+    def get_latest_article(self) -> models.Article:
+        return self.get_article(self.get_latest_article_id())
