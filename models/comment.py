@@ -7,7 +7,6 @@ from typing import Optional
 
 class Comment(BaseModel):
     id: int
-    profile: dict
     message: str
     type: int  #  maybe 0 - comment, 1 - reply
     vote: enums.Vote
@@ -24,7 +23,10 @@ class Comment(BaseModel):
     def __init__(self, data: dict, api):
         super().__init__(data)
         self.__api = api
+        from .profile import Profile
+        self.author = self.profile = Profile(data["author"], api)
         self.timestamp = datetime.fromtimestamp(data["timestamp"])
+        self.text = self.message
 
     def edit(self, message: str) -> "Comment":
         return

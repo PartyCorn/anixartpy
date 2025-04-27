@@ -1,4 +1,7 @@
-from enum import IntEnum, StrEnum
+from enum import Enum, IntEnum
+
+class StrEnum(str, Enum):  # for Python 3.10 and lower
+    pass
 
 class ChannelMemberPermission(IntEnum):
     MEMBER = 0
@@ -18,7 +21,7 @@ class QuoteAlignment(StrEnum):
     LEFT = "left"
     CENTER = "center"
 
-class CommentSort(IntEnum):
+class Sorting(IntEnum):
     NEW = 1
     OLD = 2
     POPULAR = 3

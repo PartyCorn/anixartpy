@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Iterator
 from .. import enums, errors, utils
 from .base import BaseModel
 from .channel import Channel
@@ -61,23 +61,32 @@ class Article(BaseModel):
             raise errors.DefaultError(response["code"])
         return response
 
-    def get_votes(self, page: int = 0) -> List[UserVote]:
-        response = self.__api._get(f"/article/votes/{self.id}/{page}")
+    def _fetch_votes_page(self, sort: enums.Sorting, page: int) -> tuple[list[UserVote], int]:
+        response = self.__api._get(f"/article/votes/{self.id}/{page}?sort={sort}")
         if response["code"] == 0:
-            return list([UserVote(vote) for vote in response["content"]])
-        else:
-            raise errors.AnixartError(response["code"], "Статья не найдена.")
-    
-    def get_reposts(self, page: int = 0) -> List["Article"]:
-        response = self.__api._get(f"/article/reposts/{self.id}/{page}")
+            items = [UserVote(vote) for vote in response["content"]]
+            return items, response["total_page_count"]
+        raise errors.AnixartError(response["code"], "Ошибка загрузки голосов")
+
+    def get_votes(self, sort: enums.Sorting, page: Union[int, range, None] = None) -> Union[list[UserVote], Iterator[UserVote]]:
+        return utils.paginate(lambda pg: self._fetch_votes_page(sort, pg), page)
+
+    def _fetch_reposts_page(self, sort: enums.Sorting, page: int) -> tuple[list["Article"], int]:
+        response = self.__api._get(f"/article/reposts/{self.id}/{page}?sort={sort}")
         if response["code"] == 0:
-            return list([Article(repost, self.__api) for repost in response["content"]])
-        else:
-            raise errors.AnixartError(response["code"], "Статья не найдена.")
+            items = [Article(repost, self.__api) for repost in response["content"]]
+            return items, response["total_page_count"]
+        raise errors.AnixartError(response["code"], "Ошибка загрузки репостов")
+
+    def get_reposts(self, sort: enums.Sorting, page: Union[int, range, None] = None) -> Union[list["Article"], Iterator["Article"]]:
+        return utils.paginate(lambda pg: self._fetch_reposts_page(sort, pg), page)
     
-    def get_comments(self, sort: Union[enums.CommentSort, int] = enums.CommentSort.NEW, page: int = 0) -> List[ArticleComment]:
+    def _fetch_comments_page(self, sort: enums.Sorting, page: int) -> tuple[list[ArticleComment], int]:
         response = self.__api._get(f"/article/comment/all/{self.id}/{page}?sort={sort}")
         if response["code"] == 0:
-            return list([ArticleComment(comment, self.__api) for comment in response["content"]])
-        else:
-            raise errors.AnixartError(response["code"], "Статья не найдена.")
+            items = [ArticleComment(comment, self.__api) for comment in response["content"]]
+            return items, response["total_page_count"]
+        raise errors.AnixartError(response["code"], "Ошибка загрузки комментариев")
+    
+    def get_comments(self, sort: enums.Sorting, page: Union[int, range, None] = 0) -> Union[list[ArticleComment], Iterator[ArticleComment]]:
+        return utils.paginate(lambda pg: self._fetch_comments_page(sort, pg), page)

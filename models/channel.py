@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List, Union
+from typing import Optional, Union, Iterator
 from .. import enums, errors, anix_images, utils
 from .base import BaseModel
 from .profile import Badge
@@ -119,7 +119,7 @@ class Channel(BaseModel):
             article_data = article_data.build()
         if repost_article_id is not None:
             article_data["repost_article_id"] = repost_article_id
-        response = self._post(f"/article/create/{self.id}", article_data)
+        response = self.__api._post(f"/article/create/{self.id}", article_data)
         if response["code"] == 0:
             return Article(response["article"], self)
         else:
@@ -141,26 +141,37 @@ class Channel(BaseModel):
             raise errors.ChannelUnsubscribeError(response["code"])
         return self
     
-    def get_members(self, page: int = 0) -> List[ChannelMember]:
+    def _fetch_members_page(self, page: int) -> tuple[list[ChannelMember], int]:
         response = self.__api._get(f"/channel/{self.id}/subscriber/all/{page}")
         if response["code"] == 0:
-            return list([ChannelMember(member, self.__api) for member in response["content"]])
-        else:
-            raise errors.AnixartError(response["code"], "Канал не найден.")
-    
-    def get_administrators(self, permission: Union[enums.ChannelMemberPermission, int] = enums.ChannelMemberPermission.ADMINISTRATOR, page: int = 0) -> List[ChannelMember]:
+            items = [ChannelMember(member, self.__api) for member in response["content"]]
+            return items, response["total_page_count"]
+        raise errors.AnixartError(response["code"], "Ошибка загрузки участников канала")
+
+    def get_members(self, page: Union[int, range, None] = None) -> Union[list[ChannelMember], Iterator[ChannelMember]]:
+        return utils.paginate(lambda pg: self._fetch_members_page(pg), page)
+
+    def _fetch_administrators_page(self, permission: Union[enums.ChannelMemberPermission, int], page: int) -> tuple[list[ChannelMember], int]:
         response = self.__api._post(f"/channel/{self.id}/permission/all/{page}", {"permission": permission})
         if response["code"] == 0:
-            return list([ChannelMember(member, self.__api) for member in response["content"]])
-        else:
-            raise errors.AnixartError(response["code"], "Не удалось получить список администраторов канала.")
-    
-    def get_blocked_members(self, page: int = 0) -> List[ChannelMember]:
+            items = [ChannelMember(member, self.__api) for member in response["content"]]
+            return items, response["total_page_count"]
+        raise errors.AnixartError(response["code"], "Ошибка загрузки администраторов")
+
+    def get_administrators(self, 
+                        permission: Union[enums.ChannelMemberPermission, int] = enums.ChannelMemberPermission.ADMINISTRATOR,
+                        page: Union[int, range, None] = None) -> Union[list[ChannelMember], Iterator[ChannelMember]]:
+        return utils.paginate(lambda pg: self._fetch_administrators_page(permission, pg), page)
+
+    def _fetch_blocked_members_page(self, page: int) -> tuple[list[ChannelMember], int]:
         response = self.__api._get(f"/channel/{self.id}/block/all/{page}")
         if response["code"] == 0:
-            return list([ChannelMember(member, self.__api) for member in response["content"]])
-        else:
-            raise errors.AnixartError(response["code"], "Не удалось получить список заблокированных пользователей канала.")
+            items = [ChannelMember(member, self.__api) for member in response["content"]]
+            return items, response["total_page_count"]
+        raise errors.AnixartError(response["code"], "Ошибка загрузки заблокированных пользователей")
+
+    def get_blocked_members(self, page: Union[int, range, None] = None) -> Union[list[ChannelMember], Iterator[ChannelMember]]:
+        return utils.paginate(lambda pg: self._fetch_blocked_members_page(pg), page)
     
     def set_avatar(self, file: str) -> "Channel":
         response = anix_images.upload_avatar(self.id, file, self.is_blog)

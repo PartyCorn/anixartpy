@@ -8,23 +8,23 @@ except ImportError:
     os.system("pip install requests")
 
 __author__ = "PartyCorn"
-__version__ = "0.3.2"
+__version__ = "0.3.4"
 
 class AnixartAPI:
     BASE_URL = "https://api.anixart.tv"
 
-    def __init__(self, token: Optional[str]):
+    def __init__(self, token: Optional[str] = None):
         """
-        Initialize the Anixart API client.
+        Инициализирует клиент Anixart API.
 
         Args:
-            token (Optional[str]): Authentication token for the Anixart API. If provided, will be used for authenticated requests.
+            token (Optional[str]): Токен аутентификации для Anixart API. Если он предоставлен, будет использоваться для аутентифицированных запросов.
         """
         self.session = requests.Session()
         self.token = token
         anix_images.TOKEN = token
         self.session.headers.update({
-            'User-Agent': f'AnixartPy/{__version__} by PartyCorn-private (Android 12; SDK 31; arm64-v8a; iPhone 20 Pro Max; ru)',
+            'User-Agent': f'AnixartPy/{__version__} by {__author__} (Android 12; SDK 31; arm64-v8a; iPhone 20 Pro Max; ru)',
             'API-Version': 'v2',
             'sign': 'U1R9MFRYVUdOQWcxUFp4OENja1JRb8xjZFdvQVBjWDdYR07BUkgzNllxRWJPOFB3ZkhvdU9JYVJSR9g2UklRcVk1SW3QV8xjMzc2fWYzMmdmZDc2NTloN0g0OGUwN0ZlOGc8N0hjN0U9Y0M3Z1NxLndhbWp2d1NqeC3lcm9iZXZ2aEdsOVAzTnJX2zqZpyRX',
         })
