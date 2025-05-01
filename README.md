@@ -25,7 +25,7 @@ from anixartpy import AnixartAPI, ArticleBuilder, Style, enums
 api = AnixartAPI(token="your_token_here")
 
 # Создайте конструктор статей
-builder = ArticleBuilder(channel_id=123)\
+article_data = ArticleBuilder(channel_id=123)\
     .add_header("Заголовок статьи")\
     .add_paragraph(f"Это {Style.underline('подчёркнутый')} текст.")\
     .add_quote("Это цитата", caption="Автор", alignment=enums.QuoteAlignment.CENTER)\
@@ -35,7 +35,7 @@ builder = ArticleBuilder(channel_id=123)\
     .add_embed("https://example.com")
 
 # Создайте статью
-article = api.create_article(channel_id=123, article_data=article_data)
+article = api.get_channel(123).create_article(article_data)
 
 # Получите комментарии к этой записи
 for comment in api.get_article(19735).get_comments(enums.Sorting.NEW, page=None):

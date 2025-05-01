@@ -8,7 +8,7 @@ except ImportError:
     os.system("pip install requests")
 
 __author__ = "PartyCorn"
-__version__ = "0.3.4"
+__version__ = "0.3.5"
 
 class AnixartAPI:
     BASE_URL = "https://api.anixart.tv"
