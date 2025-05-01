@@ -1,7 +1,14 @@
 from enum import Enum, IntEnum
 
 class StrEnum(str, Enum):  # for Python 3.10 and lower
-    pass
+    def __str__(self):
+        return str(self.value)
+    
+    def __repr__(self):
+        return repr(self.value)
+    
+    def __json__(self):
+        return self.value
 
 class ChannelMemberPermission(IntEnum):
     MEMBER = 0

@@ -2,7 +2,6 @@ import time
 import uuid
 from . import anix_images
 from typing import Union, Optional, Iterator, Callable, Any
-import itertools
 
 
 class Style:
