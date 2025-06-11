@@ -8,15 +8,30 @@ except ImportError:
     os.system("pip install requests")
 
 class AnixartAPI:
-    BASE_URL = "https://api.anixart.tv"
+    SERVERS = {
+        'app': "https://api.anixart.app",
+        'tv': "https://api.anixart.tv",
+        'tv1': "https://api-s2.anixart.tv",
+        'tv2': "https://api-s3.anixart.tv",
+        'tv3': "https://api-s4.anixart.tv",
+    }
 
-    def __init__(self, token: Optional[str] = None):
+    def __init__(self, token: Optional[str] = None, server: str = 'app'):
         """
         Инициализирует клиент Anixart API.
 
         Args:
             token (Optional[str]): Токен аутентификации для Anixart API. Если он предоставлен, будет использоваться для аутентифицированных запросов.
+            server (str): Выбор сервера из доступных вариантов:
+                - 'app' (по умолчанию) - основной сервер для России, anixart.app
+                - 'tv' - anixart.tv
+                - 'tv1', 'tv2', 'tv3' - альтернативные зеркала
         """
+        if server not in self.SERVERS:
+            available = ", ".join(self.SERVERS.keys())
+            raise ValueError(f"Неизвестный сервер. Доступные варианты: {available}")
+        
+        self.base_url = self.SERVERS[server]
         self.session = requests.Session()
         self.token = token
         anix_images.TOKEN = token
@@ -29,12 +44,12 @@ class AnixartAPI:
             self.session.params = {"token": token}
 
     def _get(self, endpoint) -> dict:
-        url = f"{self.BASE_URL}{endpoint}"
+        url = f"{self.base_url}{endpoint}"
         response = self.session.get(url)
         return response.json()
 
     def _post(self, endpoint, data=None) -> dict:
-        url = f"{self.BASE_URL}{endpoint}"
+        url = f"{self.base_url}{endpoint}"
         response = self.session.post(url, json=data)
         return response.json()
     
