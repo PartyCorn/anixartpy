@@ -9,6 +9,7 @@ on:
       - 'anixartpy/**'
       - 'setup.cfg'
       - 'pyproject.toml'
+      - '.github/workflows/publish.yml'
 
 jobs:
   deploy:
