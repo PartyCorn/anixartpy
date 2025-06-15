@@ -1,6 +1,6 @@
 from . import anix_images, models, errors
 from .utils import ArticleBuilder, Style
-from typing import Union, Optional
+from typing import Optional
 import os
 try:
     import requests
@@ -32,9 +32,9 @@ class AnixartAPI:
             raise ValueError(f"Неизвестный сервер. Доступные варианты: {available}")
         
         self.base_url = self.SERVERS[server]
+        anix_images.API_INSTANCE = self
         self.session = requests.Session()
         self.token = token
-        anix_images.TOKEN = token
         self.session.headers.update({
             'User-Agent': f'AnixartApp/9.0 BETA 1-24121614 (Android 12; SDK 31; arm64-v8a; Xiaomi M2102J20SG; ru)',
             'API-Version': 'v2',

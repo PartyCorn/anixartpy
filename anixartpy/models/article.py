@@ -34,7 +34,7 @@ class Article(BaseModel):
 
     def edit(self, article_data: Union[utils.ArticleBuilder, dict], repost_article_id: Optional[int] = None) -> "Article":
         if isinstance(article_data, utils.ArticleBuilder):
-            article_data = article_data.build()
+            article_data = article_data.build(channel_id=self.channel.id, is_edit_mode=True)
         if repost_article_id is not None:
             article_data["repost_article_id"] = repost_article_id
         response = self.__api._post(f"/article/edit/{self.id}", article_data)

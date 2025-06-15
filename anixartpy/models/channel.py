@@ -116,7 +116,7 @@ class Channel(BaseModel):
     def create_article(self, article_data: Union[utils.ArticleBuilder, dict], repost_article_id: Optional[int] = None):
         from .article import Article
         if isinstance(article_data, utils.ArticleBuilder):
-            article_data = article_data.build()
+            article_data = article_data.build(channel_id=self.id)
         if repost_article_id is not None:
             article_data["repost_article_id"] = repost_article_id
         response = self.__api._post(f"/article/create/{self.id}", article_data)

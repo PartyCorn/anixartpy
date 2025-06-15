@@ -25,7 +25,7 @@ from anixartpy import AnixartAPI, ArticleBuilder, Style, enums
 api = AnixartAPI(token="your_token_here")
 
 # Создайте конструктор статей
-article_data = ArticleBuilder(channel_id=123)\
+article_data = ArticleBuilder(request_delay=0.25)\  # Промежуток времени между запросами на загрузку медиа и вложений
     .add_header("Заголовок статьи")\
     .add_paragraph(f"Это {Style.underline('подчёркнутый')} текст.")\
     .add_quote("Это цитата", caption="Автор", alignment=enums.QuoteAlignment.CENTER)\

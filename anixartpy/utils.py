@@ -1,7 +1,7 @@
 import time
 import uuid
 from . import anix_images
-from typing import Union, Optional, Iterator, Callable, Any
+from typing import Union, Optional, Iterator, Callable, Any, List
 
 
 class Style:
@@ -29,14 +29,17 @@ class Style:
 class ArticleBuilder:
     EDITOR_VERSION = "2.26.5"
 
-    def __init__(self, channel_id: int):
+    def __init__(self, channel_id: Optional[int] = None, request_delay: float = 0.25):
         self.channel_id = channel_id
+        self.request_delay = request_delay
         self.payload = {
             "time": int(time.time() * 1000),
             "blocks": [],
             "version": self.EDITOR_VERSION,
             "block_count": 0
         }
+        self._media_files = []
+        self._embed_links = []
     
     def _add_block(self, name, block_type, data):
         block = {"id": str(uuid.uuid4())[:12], "name": name, "type": block_type, "data": data}
@@ -59,24 +62,59 @@ class ArticleBuilder:
     def add_list(self, items: list, ordered: bool = False):
         return self._add_block("list", "list", {"items": items, "style": ("un", "")[ordered] + "ordered", "item_count": len(items)})
     
-    def add_media(self, files: str | list[str]):
-        media = []
-        if type(files) != list:
+    def add_media(self, files: Union[str, List[str]]):
+        if isinstance(files, str):
             files = [files]
-        for file in files:
-            image = anix_images.upload_image(self.channel_id, file)
-            if image.get('success') != 1:
-                print('IMAGE ERROR')
-            media.append(image["file"])
-        return self._add_block("media", "media", {"items": media, "item_count": len(media)})
+        self._media_files.extend(files)
+        return self._add_block("media", "media", {"items": [{"url": f"pending_{i}"} for i in range(len(self._media_files))], "item_count": len(self._media_files)})
     
     def add_embed(self, link: str):
-        embed = anix_images.upload_embed(self.channel_id, link)
-        if embed.get('success') != 1:
-            print('EMBED ERROR')
-        return self._add_block("embed", "embed", {k: v for k, v in embed.items() if k != "success"})
+        self._embed_links.append(link)
+        return self._add_block("embed", "embed", {"service": "pending", "url": link})
     
-    def build(self):
+    def _upload_media(self, is_suggestion: bool = False, is_edit_mode: bool = False):
+        """Загружает все отложенные медиафайлы"""
+        if (self._media_files or self._embed_links) and not self.channel_id:
+            raise ValueError("ArticleBuilder(channel_id) обязателен для загрузки медиа и вложений")
+
+        media_results = []
+        if self._media_files:
+            media_results = anix_images.upload_media_files(
+                self.channel_id,
+                self._media_files,
+                is_suggestion,
+                is_edit_mode,
+                self.request_delay
+            )
+        
+        embed_results = []
+        if self._embed_links:
+            for link in self._embed_links:
+                result = anix_images.upload_embed_content(
+                    self.channel_id,
+                    link,
+                    is_suggestion,
+                    is_edit_mode
+                )
+                embed_results.append(result)
+                if self.request_delay > 0:
+                    time.sleep(self.request_delay)
+        
+        return media_results, embed_results
+    
+    def build(self, channel_id: Optional[int] = None, is_suggestion=False, is_edit_mode=False):
+        """Собирает финальный payload с загрузкой медиа и вложений"""
+        self.channel_id = channel_id
+        media_results, embed_results = self._upload_media(is_suggestion, is_edit_mode)
+        
+        embed_index = 0
+        for block in self.payload["blocks"]:
+            if block["type"] == "media":
+                block["data"]["items"] = [r["file"] for r in media_results]
+            elif block["type"] == "embed":
+                block["data"].update(embed_results[embed_index])
+                embed_index += 1
+        
         return {"payload": self.payload}
 
 
