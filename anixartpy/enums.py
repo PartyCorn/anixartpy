@@ -46,3 +46,12 @@ class FriendStatus(IntEnum):
     INCOMING = 0
     OUTGOING = 1
     FRIENDS = 2
+
+class DateFilter(IntEnum):
+    NONE = 0
+    TODAY = 1
+    DAY = 2
+    WEEK = 3
+    MONTH = 4
+    YEAR = 5
+    WHOLE_TIME = 6

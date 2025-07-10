@@ -198,6 +198,17 @@ class Channel(BaseModel):
     def get_blocked_members(self, page: Union[int, range, None] = None) -> Union[list[ChannelMember], Iterator[ChannelMember]]:
         return utils.paginate(lambda pg: self._fetch_blocked_members_page(pg), page)
     
+    def _fetch_articles_page(self, date_filter: Union[enums.DateFilter, int], page: int) -> tuple[list["Article"], int]:
+        from .article import Article
+        response = self.__api._post(f"/article/all/{page}", {"channel_id": self.id, "date": date_filter})
+        if response["code"] == 0:
+            items = [Article(article, self.__api) for article in response["content"]]
+            return items, response["total_page_count"]
+        raise errors.AnixartError(response["code"], "Ошибка загрузки статей канала")
+
+    def get_articles(self, date_filter: Union[enums.DateFilter, int] = enums.DateFilter.NONE, page: Union[int, range, None] = None) -> Union[list["Article"], Iterator["Article"]]:
+        return utils.paginate(lambda pg: self._fetch_articles_page(date_filter, pg), page)
+    
     def set_avatar(self, file: str) -> "Channel":
         response = anix_images.upload_avatar(self.id, file, self.is_blog)
         print(response)
