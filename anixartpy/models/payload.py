@@ -21,4 +21,5 @@ class Payload(BaseModel):
 
     def __init__(self, data: dict):
         super().__init__(data)
+        self.data = data
         self.blocks = [PayloadBlock(block) for block in data.get("blocks", [])]

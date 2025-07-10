@@ -1,6 +1,7 @@
 import time
 import uuid
 from . import anix_images
+from .models.payload import Payload
 from typing import Union, Optional, Iterator, Callable, Any, List
 
 
@@ -29,15 +30,20 @@ class Style:
 class ArticleBuilder:
     EDITOR_VERSION = "2.26.5"
 
-    def __init__(self, channel_id: Optional[int] = None, request_delay: float = 0.25):
+    def __init__(self, payload: Optional[dict] = None, channel_id: Optional[int] = None, request_delay: float = 0.25):
         self.channel_id = channel_id
         self.request_delay = request_delay
-        self.payload = {
-            "time": int(time.time() * 1000),
-            "blocks": [],
-            "version": self.EDITOR_VERSION,
-            "block_count": 0
-        }
+        
+        if payload:
+            self.payload = payload
+        else:
+            self.payload = {
+                "time": int(time.time() * 1000),
+                "blocks": [],
+                "version": self.EDITOR_VERSION,
+                "block_count": 0
+            }
+        
         self._media_files = []
         self._embed_links = []
     
@@ -72,6 +78,12 @@ class ArticleBuilder:
         self._embed_links.append(link)
         return self._add_block("embed", "embed", {"service": "pending", "url": link})
     
+    def remove_block(self, index: int):
+        if 0 <= index < len(self.payload["blocks"]):
+            self.payload["blocks"].pop(index)
+            self.payload["block_count"] = len(self.payload["blocks"])
+        return self
+    
     def _upload_media(self, is_suggestion: bool = False, is_edit_mode: bool = False):
         """Загружает все отложенные медиафайлы"""
         if (self._media_files or self._embed_links) and not self.channel_id:
@@ -104,16 +116,19 @@ class ArticleBuilder:
     
     def build(self, channel_id: Optional[int] = None, is_suggestion=False, is_edit_mode=False):
         """Собирает финальный payload с загрузкой медиа и вложений"""
-        self.channel_id = channel_id
-        media_results, embed_results = self._upload_media(is_suggestion, is_edit_mode)
-        
-        embed_index = 0
-        for block in self.payload["blocks"]:
-            if block["type"] == "media":
-                block["data"]["items"] = [r["file"] for r in media_results]
-            elif block["type"] == "embed":
-                block["data"].update(embed_results[embed_index])
-                embed_index += 1
+        if channel_id:
+            self.channel_id = channel_id
+            
+        if self._media_files or self._embed_links:
+            media_results, embed_results = self._upload_media(is_suggestion, is_edit_mode)
+            
+            embed_index = 0
+            for block in self.payload["blocks"]:
+                if block["type"] == "media" and block["data"].get("items", [{}])[0].get("url", "").startswith("pending_"):
+                    block["data"]["items"] = [r["file"] for r in media_results]
+                elif block["type"] == "embed" and block["data"].get("service") == "pending":
+                    block["data"].update(embed_results[embed_index])
+                    embed_index += 1
         
         return {"payload": self.payload}
 
