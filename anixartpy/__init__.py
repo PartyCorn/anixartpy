@@ -10,6 +10,7 @@ except ImportError:
 class AnixartAPI:
     SERVERS = {
         'app': "https://api.anixart.app",
+        'com': "https://api.anixartapp.com",
         'tv': "https://api.anixart.tv",
         'tv1': "https://api-s2.anixart.tv",
         'tv2': "https://api-s3.anixart.tv",
@@ -24,7 +25,8 @@ class AnixartAPI:
             token (Optional[str]): Токен аутентификации для Anixart API. Если он предоставлен, будет использоваться для аутентифицированных запросов.
             server (str): Выбор сервера из доступных вариантов:
                 - 'app' (по умолчанию) - основной сервер для России, anixart.app
-                - 'tv' - anixart.tv
+                - 'com' - anixartapp.com
+                - 'tv' - anixart.tv (недоступен в РФ)
                 - 'tv1', 'tv2', 'tv3' - альтернативные зеркала
         """
         if server not in self.SERVERS:
@@ -64,6 +66,13 @@ class AnixartAPI:
         response = self._post(f"/article/{article_id}")
         if response["code"] == 0:
             return models.Article(response["article"], self)
+        else:
+            raise errors.ArticleGetError(response["code"])
+    
+    def get_article_suggestion(self, article_id: int) -> models.ArticleSuggestion:
+        response = self._post(f"/article/suggestion/{article_id}")
+        if response["code"] == 0:
+            return models.ArticleSuggestion(response["articleSuggestion"], self)
         else:
             raise errors.ArticleGetError(response["code"])
     

@@ -1,8 +1,11 @@
-from typing import Union
+from typing import Union, Optional, TYPE_CHECKING
 from .. import enums, utils
 from .base import BaseModel
 from datetime import datetime
-from typing import Optional
+
+if TYPE_CHECKING:
+    from .profile import Profile
+    from .article import Article
 
 
 class Comment(BaseModel):
@@ -39,8 +42,9 @@ class Comment(BaseModel):
 
 
 class ArticleComment(Comment):
+    article: "Article"
+    
     def __init__(self, data: dict, api):
         super().__init__(data, api)
-        # Lazy import to avoid circular dependency
         from .article import Article
         self.article = Article(data["article"], api)

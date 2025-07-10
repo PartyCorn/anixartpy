@@ -1,8 +1,12 @@
 from datetime import datetime
-from typing import Optional, Union, Iterator
+from typing import Optional, Union, Iterator, TYPE_CHECKING
 from .. import enums, errors, anix_images, utils
 from .base import BaseModel
 from .profile import Badge
+
+if TYPE_CHECKING:
+    from .article import Article
+    from .articleSuggestion import ArticleSuggestion
 
 
 class ChannelMember(BaseModel):
@@ -125,6 +129,16 @@ class Channel(BaseModel):
         else:
             raise errors.ArticleCreateEditError(response["code"])
     
+    def suggest_article(self, article_data: Union[utils.ArticleBuilder, dict]):
+        from .articleSuggestion import ArticleSuggestion
+        if isinstance(article_data, utils.ArticleBuilder):
+            article_data = article_data.build(channel_id=self.id, is_suggestion=True)
+        response = self.__api._post(f"/article/suggestion/create/{self.id}", article_data)
+        if response["code"] == 0:
+            return ArticleSuggestion(response["article"], self)
+        else:
+            raise errors.ArticleCreateEditError(response["code"])
+    
     def subscribe(self) -> dict:
         response = self.__api._post(f"/channel/subscribe/{self.id}")
         if response["code"] == 0:
@@ -140,6 +154,17 @@ class Channel(BaseModel):
         else:
             raise errors.ChannelUnsubscribeError(response["code"])
         return self
+    
+    def _fetch_suggestions_page(self, page: int) -> tuple[list["ArticleSuggestion"], int]:
+        from .articleSuggestion import ArticleSuggestion
+        response = self.__api._post(f"/article/suggestion/all/{page}", {"channel_id": self.id})
+        if response["code"] == 0:
+            items = [ArticleSuggestion(suggestion, self.__api) for suggestion in response["content"]]
+            return items, response["total_page_count"]
+        raise errors.AnixartError(response["code"], "Ошибка загрузки предложенных записей канала")
+
+    def get_suggestions(self, page: Union[int, range, None] = None) -> Union[list["ArticleSuggestion"], Iterator["ArticleSuggestion"]]:
+        return utils.paginate(lambda pg: self._fetch_suggestions_page(pg), page)
     
     def _fetch_members_page(self, page: int) -> tuple[list[ChannelMember], int]:
         response = self.__api._get(f"/channel/{self.id}/subscriber/all/{page}")

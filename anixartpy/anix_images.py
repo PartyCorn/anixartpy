@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from requests import post, get
 from re import findall
 import time
+from . import errors
 
 BASE_HEADERS = {
     'User-Agent': 'AnixartApp/9.0 BETA 1-24121614 (Android 12; SDK 31; arm64-v8a; Xiaomi M2102J20SG; ru)',
@@ -95,12 +96,11 @@ def get_media_upload_token(cid, is_suggestion=False, is_edit_mode=False):
         'is_suggestion': str(is_suggestion).lower(),
         'is_edit_mode': str(is_edit_mode).lower()
     }
-    response = get(url, headers=BASE_HEADERS, params=params)
-    data = response.json()
-    media_token = data.get('media_upload_token')
-    if not media_token:
-        raise ValueError(f"Ошибка получения media_upload_token: {response.text}")
-    return media_token
+    response = get(url, headers=BASE_HEADERS, params=params).json()
+    if response['code'] == 0:
+        return response.get('media_upload_token')
+    else:
+        raise errors.EditorAvailableError(response['code'])
 
 def upload_media_files(cid, files, is_suggestion=False, is_edit_mode=False, delay=0.25):
     """Загружает несколько файлов с задержкой"""

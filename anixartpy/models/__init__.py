@@ -5,6 +5,7 @@ from .user_vote import UserVote
 from .payload import PayloadBlock, Payload
 from .comment import Comment, ArticleComment
 from .article import Article
+from .articleSuggestion import ArticleSuggestion
 
 __all__ = [
     "BaseModel",
@@ -24,4 +25,5 @@ __all__ = [
     "Comment",
     "ArticleComment",
     "Article",
+    "ArticleSuggestion",
 ]

@@ -28,6 +28,15 @@ class ChannelCreateEditError(AnixartError):
         7: "Создатель канала забанен.",
     }
 
+class EditorAvailableError(AnixartError):
+    ERROR_MESSAGES = {
+        2: "Редактор временно недоступен.",
+        3: "Достигнут лимит статей.",
+        4: "Канал не найден.",
+        5: "Вы не владелец канала.",
+        6: "Создатель канала забанен.",
+    }
+
 class ArticleCreateEditError(AnixartError):
     ERROR_MESSAGES = {
         2: "Недопустимая статья для репоста.",
@@ -41,6 +50,22 @@ class ArticleCreateEditError(AnixartError):
         10: "Канал заблокирован.",
         11: "Статья не найдена.",
         12: "Статья удалена.",
+    }
+
+class ArticleSuggestionPublishError(AnixartError):
+    ERROR_MESSAGES = {
+        2: "Предложенная запись не найдена.",
+        3: "Канал не найден.",
+        4: "Вы не владелец канала.",
+        5: "Недопустимый контент предложенной записи.",
+        6: "Недопустимые теги.",
+        7: "Создатель канала забанен."
+    }
+
+class ArticleSuggestionDeleteError(AnixartError):
+    ERROR_MESSAGES = {
+        2: "Предложенная запись не найдена.",
+        3: "Вы не владелец предложенной записи."
     }
 
 class ArticleGetError(AnixartError):

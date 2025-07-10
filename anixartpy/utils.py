@@ -171,7 +171,7 @@ class Paginator:
                     self.end_page = min(self.end_page, self._total_pages - 1)
 
             # Если страница пуста или вышли за границы — завершаем итерацию
-            if not items or self._current_page > self.end_page:
+            if not items:
                 raise StopIteration
 
             # Обновляем буфер
@@ -200,6 +200,6 @@ def paginate(
         items, _ = fetch_func(page)
         return items
     else:
-        start = 0 if page is None else page.start
-        end = None if page is None else page.stop - 1  # range(2,5) → страницы 2,3,4
+        start = 0 if page is None else (page.start if isinstance(page, range) else 0)
+        end = None if page is None else (page.stop - 1 if isinstance(page, range) else None)
         return Paginator(fetch_func, start_page=start, end_page=end)

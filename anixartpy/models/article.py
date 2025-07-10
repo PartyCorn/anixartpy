@@ -1,16 +1,18 @@
 from datetime import datetime
-from typing import Optional, List, Union, Iterator
+from typing import Optional, List, Union, Iterator, TYPE_CHECKING
 from .. import enums, errors, utils
 from .base import BaseModel
-from .channel import Channel
 from .payload import Payload
 from .user_vote import UserVote
-from .comment import ArticleComment
+
+if TYPE_CHECKING:
+    from .channel import Channel
+    from .comment import ArticleComment
 
 
 class Article(BaseModel):
     id: int
-    channel: Channel
+    channel: "Channel"
     author: dict
     payload: Payload
     vote: enums.Vote
@@ -21,15 +23,17 @@ class Article(BaseModel):
     is_under_moderation: bool
     is_deleted: bool
     under_moderation_reason: Optional[str]
+    contains_repost_article: bool
 
     def __init__(self, data: dict, api):
         super().__init__(data)
         self.__api = api
+        from .channel import Channel
         self.channel = Channel(data["channel"], api)
         self.payload = Payload(data["payload"])
         self.creation_date: datetime = datetime.fromtimestamp(data["creation_date"])
         self.last_update_date: datetime = datetime.fromtimestamp(data["last_update_date"])
-        self.repost_article = Article(data["repost_article"], self.__api) if data.get("repost_article") else {}
+        self.repost_article = Article(data["repost_article"], self.__api) if data.get("repost_article") else None
         self.vote = enums.Vote(data["vote"]) if data.get("vote") else None
 
     def edit(self, article_data: Union[utils.ArticleBuilder, dict], repost_article_id: Optional[int] = None) -> "Article":
@@ -81,12 +85,13 @@ class Article(BaseModel):
     def get_reposts(self, sort: enums.Sorting, page: Union[int, range, None] = None) -> Union[list["Article"], Iterator["Article"]]:
         return utils.paginate(lambda pg: self._fetch_reposts_page(sort, pg), page)
     
-    def _fetch_comments_page(self, sort: enums.Sorting, page: int) -> tuple[list[ArticleComment], int]:
+    def _fetch_comments_page(self, sort: enums.Sorting, page: int) -> tuple[list["ArticleComment"], int]:
+        from .comment import ArticleComment
         response = self.__api._get(f"/article/comment/all/{self.id}/{page}?sort={sort}")
         if response["code"] == 0:
             items = [ArticleComment(comment, self.__api) for comment in response["content"]]
             return items, response["total_page_count"]
         raise errors.AnixartError(response["code"], "Ошибка загрузки комментариев")
     
-    def get_comments(self, sort: enums.Sorting, page: Union[int, range, None] = 0) -> Union[list[ArticleComment], Iterator[ArticleComment]]:
+    def get_comments(self, sort: enums.Sorting, page: Union[int, range, None] = 0) -> Union[list["ArticleComment"], Iterator["ArticleComment"]]:
         return utils.paginate(lambda pg: self._fetch_comments_page(sort, pg), page)
