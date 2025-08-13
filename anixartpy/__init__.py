@@ -11,21 +11,23 @@ class AnixartAPI:
     SERVERS = {
         'app': "https://api.anixart.app",
         'com': "https://api.anixartapp.com",
+        'com2': "https://api.anixart-app.com",
         'tv': "https://api.anixart.tv",
         'tv1': "https://api-s2.anixart.tv",
         'tv2': "https://api-s3.anixart.tv",
         'tv3': "https://api-s4.anixart.tv",
     }
 
-    def __init__(self, token: Optional[str] = None, server: str = 'app'):
+    def __init__(self, token: Optional[str] = None, server: str = 'com2', base_url: Optional[str] = None):
         """
         Инициализирует клиент Anixart API.
 
         Args:
             token (Optional[str]): Токен аутентификации для Anixart API. Если он предоставлен, будет использоваться для аутентифицированных запросов.
             server (str): Выбор сервера из доступных вариантов:
-                - 'app' (по умолчанию) - основной сервер для России, anixart.app
+                - 'app' - anixart.app
                 - 'com' - anixartapp.com
+                - 'com2' (по умолчанию) - anixart-app.com
                 - 'tv' - anixart.tv (недоступен в РФ)
                 - 'tv1', 'tv2', 'tv3' - альтернативные зеркала
         """
@@ -33,7 +35,7 @@ class AnixartAPI:
             available = ", ".join(self.SERVERS.keys())
             raise ValueError(f"Неизвестный сервер. Доступные варианты: {available}")
         
-        self.base_url = self.SERVERS[server]
+        self.base_url = base_url or self.SERVERS[server]
         anix_images.API_INSTANCE = self
         self.session = requests.Session()
         self.token = token
