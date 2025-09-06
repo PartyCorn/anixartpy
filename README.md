@@ -43,3 +43,8 @@ for comment in api.get_article(article.id).get_comments(enums.Sorting.NEW, page=
     # page: None - все страницы с нуля, range(0, 5) - с 0 до 4 страницы включительно, 0 - только 1 страницу
     print(comment.profile.login, comment.message, sep=' - ')
 ```
+
+## 🤝 Контрибуция
+
+Любые идеи, багфиксы и улучшения приветствуются!  
+Создавайте форки, отправляйте pull request — вместе сделаем проект лучше 🚀

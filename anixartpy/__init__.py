@@ -1,41 +1,38 @@
 from . import anix_images, models, errors
 from .utils import ArticleBuilder, Style
-from typing import Optional
+from typing import Optional, Literal, Dict, Any
 import os
 try:
     import requests
 except ImportError:
     os.system("pip install requests")
 
-class AnixartAPI:
-    SERVERS = {
-        'app': "https://api.anixart.app",
-        'com': "https://api.anixartapp.com",
-        'com2': "https://api.anixart-app.com",
-        'tv': "https://api.anixart.tv",
-        'tv1': "https://api-s2.anixart.tv",
-        'tv2': "https://api-s3.anixart.tv",
-        'tv3': "https://api-s4.anixart.tv",
-    }
+SERVERS_URL = "https://raw.githubusercontent.com/AnixHelper/pages/refs/heads/main/urls.json"
 
-    def __init__(self, token: Optional[str] = None, server: str = 'com2', base_url: Optional[str] = None):
+class AnixartAPI:
+    def __init__(self, token: Optional[str] = None, auto_server: bool = True, server_region: Literal['default', 'ru', 'ua'] = 'default', base_url: Optional[str] = None):
         """
         Инициализирует клиент Anixart API.
 
         Args:
             token (Optional[str]): Токен аутентификации для Anixart API. Если он предоставлен, будет использоваться для аутентифицированных запросов.
-            server (str): Выбор сервера из доступных вариантов:
-                - 'app' - anixart.app
-                - 'com' - anixartapp.com
-                - 'com2' (по умолчанию) - anixart-app.com
-                - 'tv' - anixart.tv (недоступен в РФ)
-                - 'tv1', 'tv2', 'tv3' - альтернативные зеркала
+            auto_server (bool): Автоматически получать сервер из GitHub
+            server_region (str): Регион сервера (default, ru, ua)
+            base_url (Optional[str]): Прямой URL API сервера
         """
-        if server not in self.SERVERS:
-            available = ", ".join(self.SERVERS.keys())
-            raise ValueError(f"Неизвестный сервер. Доступные варианты: {available}")
-        
-        self.base_url = base_url or self.SERVERS[server]
+        if base_url:
+            self.base_url = base_url.rstrip('/')
+        elif auto_server:
+            servers_data = self._fetch_servers_data()
+            if server_region not in servers_data:
+                available = ", ".join(servers_data.keys())
+                raise ValueError(f"Неизвестный регион сервера. Доступные варианты: {available}")
+            
+            server_config = servers_data[server_region]
+            self.base_url = server_config['api_url'].rstrip('/')
+            # should_use_mirror_urls можно использовать для дополнительной логики
+        else:
+            raise ValueError("Необходимо указать base_url или использовать auto_server=True")
         anix_images.API_INSTANCE = self
         self.session = requests.Session()
         self.token = token
@@ -56,6 +53,17 @@ class AnixartAPI:
         url = f"{self.base_url}{endpoint}"
         response = self.session.post(url, json=data)
         return response.json()
+    
+    def _fetch_servers_data(self) -> Dict[str, Any]:
+        """Получает данные о серверах из GitHub"""
+        try:
+            response = requests.get(SERVERS_URL, timeout=10)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            raise ConnectionError(f"Не удалось получить данные о серверах: {e}")
+        except ValueError as e:
+            raise ValueError(f"Неверный формат JSON данных о серверах: {e}")
     
     def get_channel(self, channel_id: int) -> models.Channel:
         response = self._get(f"/channel/{channel_id}")
